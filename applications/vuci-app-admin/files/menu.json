@@ -1,0 +1,11 @@
+{
+    "system/general": {
+        "title": "General",
+        "index": 20
+    },
+    "system/general/admin": {
+        "title": "Administration",
+        "index": 1,
+        "view": "vuci-app-admin"
+    }
+}
