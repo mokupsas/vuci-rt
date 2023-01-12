@@ -1,0 +1,7 @@
+config section 'main'
+    option proto
+    option address '192.168.1.15'
+    option netmask '255.255.255.0'
+    option gateway
+    option dns
+    

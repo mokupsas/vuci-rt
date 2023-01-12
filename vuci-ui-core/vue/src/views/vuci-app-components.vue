@@ -1,0 +1,129 @@
+<template>
+
+    <!--
+    <a-table :columns="table.columns" :data-source="table.data" :loading="table.loading">
+        <template>
+            <a-button>a</a-button>
+        </template>
+    </a-table>
+    -->
+
+    <!--
+    <vuci-form uci-config="vuci_components_task">
+        <vuci-typed-section :teasers="['name']" addremove type="interface" v-slot="{ s }">
+            <template>
+                <vuci-form-item-dummy :uci-section="s" :label="$t('Interface name')" name="name"/>
+
+                <vuci-form-item-select :uci-section="s" :label="$t('Protocol')" name="proto" :options="[ 'static', 'dhcp']"/>
+
+                <vuci-form-item-input :uci-section="s" :label="$t('Address')" name="address"/>
+
+                <vuci-form-item-input :uci-section="s" :label="$t('Netmask')" name="netmask"/>
+
+                <vuci-form-item-input :uci-section="s" :label="$t('Gateway')" name="gateway"/>
+
+                <vuci-form-item-list :uci-section="s" :label="$t('DNS')" name="dns"/>
+            </template>
+        </vuci-typed-section>
+    </vuci-form>
+    -->
+
+    <div>
+        <vuci-form uci-config="vuci_components_task">
+            <vuci-typed-section type="interface" :columns="columns">
+                <template #name="{ s }">
+                    <vuci-form-item-dummy :uci-section="s"  name="name"/>
+                </template>
+                <template #address="{ s }">
+                    <vuci-form-item-dummy :uci-section="s"  name="address" rules="netmask4"/>
+                </template>
+                <template #netmask="{ s }">
+                    <vuci-form-item-dummy :uci-section="s"  name="netmask" rules="netmask4"/>
+                </template>
+                <template #proto="{ s }">
+                    <a-button type="primary" style="margin-right: 10px" size="small" @click="editItem(s)">{{ $t('Edit') }}</a-button>
+                    <a-button type="danger" style="margin-right: 10px" size="small">{{ $t('Delete') }}</a-button>
+                </template>
+            </vuci-typed-section>
+
+            <template slot="footer"><div></div></template>
+        </vuci-form>
+
+        <!--
+        <a-modal v-if="selectedSection" v-model="modalShow" :title="modalTitle">
+            <a-form-model >
+                <a-form-model-item label="Protocol">
+                    <a-input v-model="selectedSection.proto"/>
+                </a-form-model-item>
+                <a-form-model-item label="Address">
+                    <a-input v-model="selectedSection.address"/>
+                </a-form-model-item>
+                <a-form-model-item label="Netmask">
+                    <a-input v-model="selectedSection.netmask"/>
+                </a-form-model-item>
+                <a-form-model-item label="Gateway">
+                    <a-input v-model="selectedSection.gateway"/>
+                </a-form-model-item>
+                <a-form-model-item label="DNS">
+                    <a-input v-model="selectedSection.dns"/>
+                </a-form-model-item>
+            </a-form-model>
+        </a-modal>
+        -->
+
+        <a-modal v-if="selectedName" v-model="modalShow" :title="this.selectedName">
+            <a-form-model >
+                <vuci-form uci-config="vuci_components_task">
+
+                    <vuci-named-section :name="this.selectedName" v-slot="{ s }">
+                        <vuci-form-item-input :uci-section="s" :label="$t('Interface name')" name="name"/>
+                    </vuci-named-section>
+
+                    <template slot="footer"><div></div></template>
+                </vuci-form>
+            </a-form-model>
+        </a-modal>
+
+    </div>
+
+</template>
+
+<script>
+export default {
+  data () {
+    return {
+      columns: [
+        { name: 'name', label: 'Interface name' },
+        { name: 'address', label: 'Address' },
+        { name: 'netmask', label: 'Netmask' },
+        { name: 'proto', label: '' }
+      ],
+      // Modal
+      modalShow: false,
+      modalTitle: null,
+      // Sectio that we edit
+      selectedSection: null,
+      selectedName: null
+    }
+  },
+  methods: {
+    get_time () {
+      this.$rpc.call('example', 'get_time', {}).then(r => {
+        this.time = r.time
+      })
+    },
+    editItem (s) {
+      this.selectedName = s['.name']
+      // this.selectedSection = await this.getTypedSection(s.key)
+      this.modalShow = true
+    },
+    async getTypedSection (id) {
+      await this.$uci.load('vuci_components_task')
+      const interfaces = this.$uci.sections('vuci_components_task', 'interface')
+      return interfaces[id]
+    }
+  }
+}
+</script>
+
+<style></style>
