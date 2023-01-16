@@ -71,17 +71,22 @@
         </a-modal>
         -->
 
-        <a-modal v-if="selectedName" v-model="modalShow" :title="this.selectedName">
+        <a-modal v-model="modalShow" :title="modalTitle(this.selectedName)">
             <a-form-model >
                 <vuci-form uci-config="vuci_components_task">
 
-                    <vuci-named-section :name="this.selectedName" v-slot="{ s }">
-                        <vuci-form-item-input :uci-section="s" :label="$t('Interface name')" name="name"/>
+                    <vuci-named-section :name="this.selectedUciName" v-if="modalShow" v-slot="{ s }">
+                        <vuci-form-item-select :uci-section="s" :options="protocols" :label="$t('Protocol')" name="proto"/>
+                        <vuci-form-item-input :uci-section="s" :label="$t('Address')" name="address"/>
+                        <vuci-form-item-input :uci-section="s" :label="$t('Netmask')" name="netmask"/>
+                        <vuci-form-item-input :uci-section="s" :label="$t('Gateway')" name="gateway"/>
+                        <vuci-form-item-list :uci-section="s" :label="$t('DNS')" name="dns"/>
                     </vuci-named-section>
 
-                    <template slot="footer"><div></div></template>
+                    <!-- <template slot="footer"><div></div></template> -->
                 </vuci-form>
             </a-form-model>
+            <template #footer><div/></template>
         </a-modal>
 
     </div>
@@ -98,12 +103,16 @@ export default {
         { name: 'netmask', label: 'Netmask' },
         { name: 'proto', label: '' }
       ],
+      protocols: [
+        ['static', 'Static'],
+        ['dhcp', 'DHCP']
+      ],
       // Modal
       modalShow: false,
-      modalTitle: null,
       // Sectio that we edit
       selectedSection: null,
-      selectedName: null
+      selectedName: null,
+      selectedUciName: null
     }
   },
   methods: {
@@ -113,14 +122,19 @@ export default {
       })
     },
     editItem (s) {
-      this.selectedName = s['.name']
+      this.selectedName = s.name
+      this.selectedUciName = s['.name']
       // this.selectedSection = await this.getTypedSection(s.key)
       this.modalShow = true
+      console.log(s)
     },
     async getTypedSection (id) {
       await this.$uci.load('vuci_components_task')
       const interfaces = this.$uci.sections('vuci_components_task', 'interface')
       return interfaces[id]
+    },
+    modalTitle (name) {
+      return `Interface ${name}`
     }
   }
 }
