@@ -7,7 +7,7 @@
                     <vuci-form-item-dummy :uci-section="s"  name="name"/>
                 </template>
                 <template #address="{ s }">
-                    <vuci-form-item-dummy :uci-section="s"  name="address" rules="ipaddr"/>
+                    <vuci-form-item-dummy :uci-section="s"  name="address" rules="ip4addr"/>
                 </template>
                 <template #netmask="{ s }">
                     <vuci-form-item-dummy :uci-section="s"  name="netmask" rules="netmask4"/>
@@ -29,7 +29,7 @@
             <template slot="footer"><div></div></template>
         </vuci-form>
 
-        <modalView v-if="modalShow" :title="this.modalTitle" :uci="this.selectedUciName" @cancel="handleCancel" @applied="realoadData"></modalView>
+        <modalView v-if="modalShow" :title="this.modalTitle" :uci="this.selectedUciName" @cancel="handleCancel" @applied="test"></modalView>
 
     </div>
 
@@ -57,6 +57,10 @@ export default {
     }
   },
   methods: {
+    test (self) {
+      // console.log(self)
+      console.log(self)
+    },
     async load () {
       await this.$uci.load('vuci_components_task')
     },
@@ -79,13 +83,13 @@ export default {
 
       // Checking if input is empty
       if (!this.newInterface) {
-        console.log('Name is empty')
+        this.$message.warning('Name is empty')
         return false
       }
 
       // Checking if interface already exsit
       if (await this.doesInterfaceExist(this.newInterface)) {
-        console.log('The name already exist')
+        this.$message.warning('Name already exist')
         return false
       }
 
@@ -98,12 +102,15 @@ export default {
       this.selectedUciName = section
       // Open modal
       this.modalShow = true
+
+      this.realoadData()
     },
     // iName - interface name
     async deleteItem (iName) {
       this.$uci.del('vuci_components_task', iName)
       await this.$uci.save()
       await this.$uci.apply()
+      this.$message.success('Interface successfully deleted')
       this.realoadData()
     },
     async doesInterfaceExist (name) {

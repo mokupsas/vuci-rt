@@ -8,6 +8,7 @@
 </template>
 
 <script>
+import bla from './components/'
 export default {
     data() {
         return {
