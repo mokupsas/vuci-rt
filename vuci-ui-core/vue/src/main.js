@@ -28,6 +28,8 @@ import VuciLine from '@/components/VuciLine.vue'
 import VuciDashboard from '@/components/VuciDashboard.vue'
 import VuciProgressBar from '@/components/VuciProgressBar.vue'
 
+import ModalView from '@/components/ModalView.vue'
+
 import '@/components/VuciForm'
 
 Vue.config.productionTip = false
@@ -54,6 +56,7 @@ Vue.use(log)
 Vue.component('VuciLine', VuciLine)
 Vue.component('VuciDashboard', VuciDashboard)
 Vue.component('VuciProgressBar', VuciProgressBar)
+Vue.component('ModalView', ModalView)
 
 new Vue({
   router,

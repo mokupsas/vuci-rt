@@ -1,36 +1,8 @@
 <template>
 
-    <!--
-    <a-table :columns="table.columns" :data-source="table.data" :loading="table.loading">
-        <template>
-            <a-button>a</a-button>
-        </template>
-    </a-table>
-    -->
-
-    <!--
-    <vuci-form uci-config="vuci_components_task">
-        <vuci-typed-section :teasers="['name']" addremove type="interface" v-slot="{ s }">
-            <template>
-                <vuci-form-item-dummy :uci-section="s" :label="$t('Interface name')" name="name"/>
-
-                <vuci-form-item-select :uci-section="s" :label="$t('Protocol')" name="proto" :options="[ 'static', 'dhcp']"/>
-
-                <vuci-form-item-input :uci-section="s" :label="$t('Address')" name="address"/>
-
-                <vuci-form-item-input :uci-section="s" :label="$t('Netmask')" name="netmask"/>
-
-                <vuci-form-item-input :uci-section="s" :label="$t('Gateway')" name="gateway"/>
-
-                <vuci-form-item-list :uci-section="s" :label="$t('DNS')" name="dns"/>
-            </template>
-        </vuci-typed-section>
-    </vuci-form>
-    -->
-
     <div>
-        <vuci-form uci-config="vuci_components_task">
-            <vuci-typed-section type="interface" :columns="columns" addremove :add="addItem">
+        <vuci-form uci-config="vuci_components_task" :key="dataChange">
+            <vuci-typed-section type="interface" :columns="columns" :add="addItem">
                 <template #name="{ s }">
                     <vuci-form-item-dummy :uci-section="s"  name="name"/>
                 </template>
@@ -42,55 +14,22 @@
                 </template>
                 <template #proto="{ s }">
                     <a-button type="primary" style="margin-right: 10px" size="small" @click="editItem(s)">{{ $t('Edit') }}</a-button>
-                    <a-button type="danger" style="margin-right: 10px" size="small">{{ $t('Delete') }}</a-button>
+
+                    <a-popconfirm @confirm="deleteItem(s['.name'])" placement="left" :title="$t('interfaces.DelConfirm')">
+                      <a-button type="danger" size="small">{{ $t('Delete') }}</a-button>
+                    </a-popconfirm>
+
                 </template>
             </vuci-typed-section>
             <label class="field-label" for="enable">Interface name</label>
-            <div class="field-input">
-              <input type="text" class="input">
+            <div class="input-wrapper">
+              <input type="text" v-model="newInterface" class="ant-input">
             </div>
-            <!-- <template slot="footer"><div></div></template> -->
+            <button class="ant-btn ant-btn-primary ant-btn-sm" style="margin-right: 10px;" @click="addItem">Create</button>
+            <template slot="footer"><div></div></template>
         </vuci-form>
 
-        <!--
-        <a-modal v-if="selectedSection" v-model="modalShow" :title="modalTitle">
-            <a-form-model >
-                <a-form-model-item label="Protocol">
-                    <a-input v-model="selectedSection.proto"/>
-                </a-form-model-item>
-                <a-form-model-item label="Address">
-                    <a-input v-model="selectedSection.address"/>
-                </a-form-model-item>
-                <a-form-model-item label="Netmask">
-                    <a-input v-model="selectedSection.netmask"/>
-                </a-form-model-item>
-                <a-form-model-item label="Gateway">
-                    <a-input v-model="selectedSection.gateway"/>
-                </a-form-model-item>
-                <a-form-model-item label="DNS">
-                    <a-input v-model="selectedSection.dns"/>
-                </a-form-model-item>
-            </a-form-model>
-        </a-modal>
-        -->
-
-        <a-modal v-model="modalShow" :title="modalTitle(this.selectedName)">
-            <a-form-model >
-                <vuci-form uci-config="vuci_components_task">
-
-                    <vuci-named-section :name="this.selectedUciName" v-if="modalShow" v-slot="{ s }">
-                        <vuci-form-item-select :uci-section="s" :options="protocols" :label="$t('Protocol')" name="proto"/>
-                        <vuci-form-item-input :uci-section="s" :label="$t('Address')" name="address"/>
-                        <vuci-form-item-input :uci-section="s" :label="$t('Netmask')" name="netmask"/>
-                        <vuci-form-item-input :uci-section="s" :label="$t('Gateway')" name="gateway"/>
-                        <vuci-form-item-list :uci-section="s" :label="$t('DNS')" name="dns"/>
-                    </vuci-named-section>
-
-                    <!-- <template slot="footer"><div></div></template> -->
-                </vuci-form>
-            </a-form-model>
-            <template #footer><div/></template>
-        </a-modal>
+        <modalView v-if="modalShow" :title="this.modalTitle" :uci="this.selectedUciName" @cancel="handleCancel" @applied="realoadData"></modalView>
 
     </div>
 
@@ -106,69 +45,95 @@ export default {
         { name: 'netmask', label: 'Netmask' },
         { name: 'proto', label: '' }
       ],
-      protocols: [
-        ['static', 'Static'],
-        ['dhcp', 'DHCP']
-      ],
+      dataChange: 1,
       // Modal
       modalShow: false,
-      // Sectio that we edit
-      selectedSection: null,
-      selectedName: null,
-      selectedUciName: null
+      modalTitle: null,
+      // Section that we edit
+      selectedUciName: null,
+      // Adding new section
+      addName: null,
+      newInterface: null
     }
   },
   methods: {
-    get_time () {
-      this.$rpc.call('example', 'get_time', {}).then(r => {
-        this.time = r.time
-      })
+    async load () {
+      await this.$uci.load('vuci_components_task')
+    },
+    async realoadData () {
+      await this.load()
+      this.dataChange++
     },
     editItem (s) {
-      this.selectedName = s.name
+      this.modalTitle = s.name
       this.selectedUciName = s['.name']
-      // this.selectedSection = await this.getTypedSection(s.key)
       this.modalShow = true
-      console.log(s)
     },
     async getTypedSection (id) {
       await this.$uci.load('vuci_components_task')
       const interfaces = this.$uci.sections('vuci_components_task', 'interface')
       return interfaces[id]
     },
-    modalTitle (name) {
-      return `Interface ${name}`
+    async addItem () {
+      await this.load()
+
+      // Checking if input is empty
+      if (!this.newInterface) {
+        console.log('Name is empty')
+        return false
+      }
+
+      // Checking if interface already exsit
+      if (await this.doesInterfaceExist(this.newInterface)) {
+        console.log('The name already exist')
+        return false
+      }
+
+      const sid = await this.$uci.add('vuci_components_task', 'interface') // creating new interface
+      await this.$uci.set('vuci_components_task', sid, 'name', this.newInterface) // adding name to the interface
+      await this.$uci.save()
+      await this.$uci.apply()
+      const section = await this.findNewestSection() // fetching newly created interface .name
+      this.modalTitle = this.newInterface // title for
+      this.selectedUciName = section
+      // Open modal
+      this.modalShow = true
     },
-    addItem (self) {
-      this.$prompt({
-        title: 'Add',
-        placeholder: 'Please input a name',
-        validator: value => {
-          if (self.sections.filter(s => s.name === value).length > 0) {
-            return 'The name already exist'
-          }
-        }
-      }).then(value => {
-        const sid = this.addSection('interface')
-        this.$uci.set('vuci_components_task', sid, 'name', value)
-        this.saveUci()
-      })
+    // iName - interface name
+    async deleteItem (iName) {
+      this.$uci.del('vuci_components_task', iName)
+      await this.$uci.save()
+      await this.$uci.apply()
+      this.realoadData()
     },
-    addSection (type, name) {
-      const sid = this.$uci.add('vuci_components_task', type, name)
-      return sid
+    async doesInterfaceExist (name) {
+      await this.$uci.load('vuci_components_task')
+      const sections = await this.$uci.sections('vuci_components_task', 'interface')
+      const count = sections.length
+
+      for (let i = 0; i < count; i++) {
+        if (name === sections[i].name) { return true }
+      }
+
+      return false
     },
-    saveUci () {
-      this.$uci.save().then(() => {
-        this.$uci.apply()
-      })
+    // Returns section name
+    async findNewestSection () {
+      await this.$uci.load('vuci_components_task')
+      const sections = await this.$uci.sections('vuci_components_task', 'interface')
+      return sections[sections.length - 1]['.name']
+    },
+    handleCancel () {
+      this.modalShow = false
     }
-  },
-  created () {
-    // console.log(this.addSection('interface'))
   }
 }
 </script>
 
 <style>
+.input-wrapper {
+  display: inline-table;
+  width: 200px;
+  margin: 0 10px 0 10px;
+}
 </style>
