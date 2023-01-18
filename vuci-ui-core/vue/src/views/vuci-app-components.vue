@@ -29,14 +29,19 @@
             <template slot="footer"><div></div></template>
         </vuci-form>
 
-        <modalView v-if="modalShow" :title="this.modalTitle" :uci="this.selectedUciName" @cancel="handleCancel" @applied="test"></modalView>
+        <modalView v-if="modalShow" :title="this.modalTitle" :uci="this.selectedUciName" @cancel="handleCancel" @applied="handleApplied"></modalView>
 
     </div>
 
 </template>
 
 <script>
+import ModalView from './ModalView.vue'
+
 export default {
+  components: {
+    ModalView
+  },
   data () {
     return {
       columns: [
@@ -131,6 +136,10 @@ export default {
       return sections[sections.length - 1]['.name']
     },
     handleCancel () {
+      this.modalShow = false
+    },
+    handleApplied () {
+      this.realoadData()
       this.modalShow = false
     }
   }
