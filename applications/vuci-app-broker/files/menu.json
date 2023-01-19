@@ -1,0 +1,11 @@
+{
+    "services/mqtt": {
+        "title": "MQTT",
+        "index": 10
+    },
+    "services/mqtt/broker": {
+        "title": "Broker",
+        "view": "vuci-app-broker",
+        "index": 11
+    }
+}
