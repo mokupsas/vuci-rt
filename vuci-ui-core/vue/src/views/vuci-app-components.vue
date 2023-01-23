@@ -62,10 +62,6 @@ export default {
     }
   },
   methods: {
-    test (self) {
-      // console.log(self)
-      console.log(self)
-    },
     async load () {
       await this.$uci.load('vuci_components_task')
     },
