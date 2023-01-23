@@ -17,7 +17,7 @@
                         <vuci-form-item-upload :uci-section="s" label="CA file" name="ca_file" depend="use_tls_ssl == 1 && tls_type == 'cert'"/>
                         <vuci-form-item-upload :uci-section="s" label="Cert file" name="cert_file" depend="use_tls_ssl == 1 && tls_type == 'cert'"/>
                         <vuci-form-item-upload :uci-section="s" label="Key file" name="key_file" depend="use_tls_ssl == 1 && tls_type == 'cert'"/>
-                        <vuci-form-item-select :uci-section="s" label="TLS version" name="tls_version" :options="tls_types" depend="use_tls_ssl == 1 && tls_type == 'cert'"/>
+                        <vuci-form-item-select :uci-section="s" label="TLS version" name="tls_version" :options="tls_versions" depend="use_tls_ssl == 1 && tls_type == 'cert'"/>
                         <vuci-form-item-input :uci-section="s" label="Pre-Shared-Key" name="psk" depend="use_tls_ssl == 1 && tls_type == 'psk'"/>
                         <vuci-form-item-input :uci-section="s" label="Identity" name="identity" depend="use_tls_ssl == 1 && tls_type == 'psk'"/>
                     </a-tab-pane>
