@@ -1,6 +1,5 @@
 <template>
   <vuci-form-item-template v-bind="VuciFormItemTemplateProps">
-    <!-- <input type="checkbox" v-model.lazy="isChecked" :checked="isChecked"/> -->
     <a-checkbox v-model.lazy="isChecked"></a-checkbox>
   </vuci-form-item-template>
 </template>
