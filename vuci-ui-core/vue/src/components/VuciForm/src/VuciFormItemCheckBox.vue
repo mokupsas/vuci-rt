@@ -33,17 +33,7 @@ export default {
       return this.initialValue !== this.boolToNumStr(this.isChecked)
     },
     __save () {
-      // this.isChecked = this.isChecked ? 1 : 0
-
-      if (this.changed()) {
-        // console.log('pasikeite')
-        this.$uci.set('mosquitto', this.sid, this.name, this.boolToNumStr(this.isChecked))
-      } else {
-        // console.log('nepasikeite')
-      }
-      // console.log(this.initialValue)
-      // console.log(this.model)
-      // console.log(this.isChecked)
+      if (this.changed()) { this.$uci.set('mosquitto', this.sid, this.name, this.boolToNumStr(this.isChecked)) }
     }
   },
   created () {
