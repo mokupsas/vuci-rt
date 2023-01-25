@@ -15,21 +15,29 @@ https://1x.antdv.com/components/checkbox/
 export default {
   name: 'VuciFormItemCheckBox',
   mixins: [VuciFormItemMixin],
+  props: {
+    autoFocus: { default: false },
+    disabled: { default: false }
+  },
   data () {
     return {
-      isChecked: 0
+      isChecked: false
     }
   },
   methods: {
+    boolToNumStr (bool) {
+      if (bool) return '1'
+      return '0'
+    },
     changed () {
-      return this.initialValue !== this.isChecked.toString()
+      return this.initialValue !== this.boolToNumStr(this.isChecked)
     },
     __save () {
-      this.isChecked = this.isChecked ? 1 : 0
+      // this.isChecked = this.isChecked ? 1 : 0
 
       if (this.changed()) {
         // console.log('pasikeite')
-        this.$uci.set('mosquitto', this.sid, this.name, this.isChecked.toString())
+        this.$uci.set('mosquitto', this.sid, this.name, this.boolToNumStr(this.isChecked))
       } else {
         // console.log('nepasikeite')
       }
@@ -39,7 +47,7 @@ export default {
     }
   },
   created () {
-    if (this.model === '1') { this.isChecked = 1 }
+    if (this.model === '1') { this.isChecked = true }
   }
 }
 </script>
