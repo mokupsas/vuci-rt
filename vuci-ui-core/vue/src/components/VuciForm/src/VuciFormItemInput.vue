@@ -1,7 +1,7 @@
 <template>
   <vuci-form-item-template v-bind="VuciFormItemTemplateProps">
     <component :is="is" v-model="model" :type="type" :placeholder="placeholder" :maxLength="maxLength" :prefix="prefixIcon" :suffix="suffixIcon"
-    :addon-before="prepend" :addon-after="append"/>
+    :addon-before="prepend" :addon-after="append" @change="test"/>
   </vuci-form-item-template>
 </template>
 
@@ -25,6 +25,11 @@ export default {
     password: Boolean,
     prefixIcon: String,
     suffixIcon: String
+  },
+  methods: {
+    test () {
+      console.log(this.changed())
+    }
   },
   computed: {
     is () {

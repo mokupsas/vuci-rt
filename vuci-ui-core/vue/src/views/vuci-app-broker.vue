@@ -4,7 +4,7 @@
         <vuci-form uci-config="mosquitto">
 
             <vuci-named-section title="MQTT Broker" name="mqtt" v-slot="{ s }" style="margin-bottom: 20px">
-                <vuci-form-item-switch :uci-section="s" label="Enable" name="enabled"/>
+                <vuci-form-item-check-box :uci-section="s" label="Enable" name="enabled"/>
                 <vuci-form-item-input :uci-section="s" label="Local port" name="local_port"/>
                 <vuci-form-item-switch :uci-section="s" label="Enable remote access" name="enable_ra"/>
             </vuci-named-section>
@@ -30,28 +30,6 @@
                 </a-tabs>
             </vuci-named-section>
 
-            <!--
-            <a-collapse>
-                <a-collapse-panel key="1" header="MQTT BROKER">
-                    <p>asda</p>
-                </a-collapse-panel>
-            </a-collapse>
-            <a-collapse>
-                <a-collapse-panel key="1" header="MQTT BROKER">
-                    <p>asda</p>
-                </a-collapse-panel>
-            </a-collapse>
-            -->
-            <!--
-            <a-tabs>
-                <a-tab-pane key="system" tab="MQTT Broker">
-
-                </a-tab-pane>
-                <a-tab-pane key="logging" tab="Settings">
-
-                </a-tab-pane>
-            </a-tabs>
-            -->
         </vuci-form>
 
     </div>

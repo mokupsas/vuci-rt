@@ -4,6 +4,7 @@ import VuciSection from './src/VuciSection.vue'
 import VuciTypedSection from './src/VuciTypedSection.vue'
 import VuciNamedSection from './src/VuciNamedSection.vue'
 import VuciFormItem from './src/VuciFormItem.vue'
+import VuciFormItemCheckBox from './src/VuciFormItemCheckBox.vue'
 import VuciFormItemDummy from './src/VuciFormItemDummy.vue'
 import VuciFormItemInput from './src/VuciFormItemInput.vue'
 import VuciFormItemSelect from './src/VuciFormItemSelect.vue'
@@ -19,6 +20,7 @@ Vue.component('VuciNamedSection', VuciNamedSection)
 
 Vue.component('VuciFormItem', VuciFormItem)
 
+Vue.component('VuciFormItemCheckBox', VuciFormItemCheckBox)
 Vue.component('VuciFormItemDummy', VuciFormItemDummy)
 Vue.component('VuciFormItemInput', VuciFormItemInput)
 Vue.component('VuciFormItemSelect', VuciFormItemSelect)
