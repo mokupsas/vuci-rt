@@ -3,37 +3,12 @@
         <a-button type="primary" @click="test">
             Get system info
         </a-button>
-        <!-- <p>{{ uptime.toISOString().substring(11, 19) }}</p> -->
-        <!--
-        <div>
-            <p>CPU load {{ cpuPercentage }}%</p>
-            <p>Memory {{ memPercentage }}%</p>
-            <p>Flash {{ flashPercentage }}%</p>
-            <p v-for="info in sysinfo" :key="info[0]">{{ info[0] }} {{ info[1] }}</p>
-        </div>
-        -->
 
-        <div v-if="wan.name">
-            <p>Type {{ wan.name }}</p>
-            <p>Ip address {{ wan.getIPv4Addrs().join(', ') }}</p>
-        </div>
-
-        <div v-if="lan.nameyy">
-            <p>Type {{ lan.name }}</p>
-            <p>Ip address {{ lan.getIPv4Addrs().join(', ') }}</p>
-        </div>
-
-        <!--
-        <card title="System">
-            <p>CPU load <a-progress :percent="cpuPercentage"/></p>
-            <p>Memory <a-progress :percent="memPercentage"/></p>
-            <p>Flash <a-progress :percent="flashPercentage"/></p>
-            <p v-for="info in sysinfo" :key="info[0]">{{ info[0] }} {{ info[1] }}</p>
-            <template slot="abc">abc</template>
-            <template slot="abc">abc</template>
-        </card>
-        -->
-        <card title="System" :data="testData"></card>
+        <card title="SYSTEM" :data="sysInfo"></card>
+        <card title="LAN" :data="lan"></card>
+        <card title="WAN" :data="wan"></card>
+        <card title="RECENT NETWORK EVENTS" :data="netEvents"></card>
+        <card title="RECENT SYSTEM EVENTS" :data="sysEvents"></card>
     </div>
 </template>
 
@@ -44,29 +19,31 @@ export default {
   components: { Card },
   data () {
     return {
-      // System info
-      sysinfo: [],
-      memPercentage: 100,
-      flashPercentage: 100,
+      // System data
+      sysInfo: [
+        { name: 'CPU load', data: 0, progress: true },
+        { name: 'Router uptime', data: null, progress: false },
+        { name: 'Local device time', data: null, progress: false },
+        { name: 'Memory usage', data: 0, progress: true },
+        { name: 'Flash usage', data: 0, progress: true },
+        { name: 'Firmware version', data: null, progress: false }
+      ],
 
-      // CPU time
-      cpuPercentage: null,
-      lastCPUTime: null,
-
-      // WAN and LAN
-      wan: [],
-      lan: [],
-
-      testData: [
-        { name: 'Test', data: 'Data', progress: false, columns: 0 },
-        { name: 'Test1', data: 'Data2', progress: false, columns: 0 },
-        { name: 'Columns', columns: 2, columnTitles: ['Memory', 'Flash'], data: ['One', 'Two'], progress: [false, false] }
-      ]
+      wan: [
+        { name: 'Type', data: null, progress: false },
+        { name: 'IP address', data: null, progress: false }
+      ],
+      lan: [
+        { name: 'Type', data: null, progress: false },
+        { name: 'IP address', data: null, progress: false }
+      ],
+      netEvents: [],
+      sysEvents: []
     }
   },
   timers: {
-    // update: { time: 2000, autostart: true, immediate: true, repeat: true },
-    // getCpuTime: { time: 1000, autostart: true, immediate: true, repeat: true }
+    update: { time: 2000, autostart: true, immediate: true, repeat: true },
+    getCpuTime: { time: 1000, autostart: true, immediate: true, repeat: true }
   },
   methods: {
     test () {
@@ -74,7 +51,6 @@ export default {
       this.$rpc.call('system', 'syslog', { limit: 10 }).then(({ log }) => {
         console.log(log)
       })
-      */
 
       this.$log.get({ table: 'NETWORK', limit: 5 }).then((r) => {
         console.log(r)
@@ -84,52 +60,28 @@ export default {
         console.log(r)
       })
 
-      // this.getWan()
-      // console.log(this.wan)
-
-    // this.getCpuTime()
-    // this.getSysInfo()
+      this.$network.load().then(() => {
+        const iface = this.$network.getInterfaces()
+        console.log(iface)
+      })
+      */
+      this.getEvents(this.netEvents, 'NETWORK', 5)
+      console.log(this.netEvents)
     },
     update () {
-      this.getWan()
-      this.getLan()
       this.getSysInfo()
-      console.log(this.wan)
+      this.getInterface(this.lan, 'lan')
+      this.getInterface(this.wan, 'wan')
+      this.getNetEvents('NETWORK', 5)
+      this.getSysEvents('SYSTEM', 5)
     },
-    getWan () {
+    getInterface (val, inter) {
       this.$network.load().then(() => {
-        const iface = this.$network.getInterface('wan')
-        if (!iface) {
-          this.waninfo = []
-          this.wanIsUp = false
-          return
-        }
+        const iface = this.$network.getInterface(inter)
+        if (!iface) return
 
-        this.waninfo = [
-          [this.$t('home.IP Address'), iface.getIPv4Addrs()],
-          [this.$t('home.Gateway'), iface.getIPv4Gateway()],
-          ['DNS', iface.getDNSAddrs().join(', ')]
-        ]
-        this.wanIsUp = iface.isUp()
-        this.wan = iface
-      })
-    },
-    getLan () {
-      this.$network.load().then(() => {
-        const iface = this.$network.getInterface('lan')
-        if (!iface) {
-          this.waninfo = []
-          this.wanIsUp = false
-          return
-        }
-
-        this.waninfo = [
-          [this.$t('home.IP Address'), iface.getIPv4Addrs()],
-          [this.$t('home.Gateway'), iface.getIPv4Gateway()],
-          ['DNS', iface.getDNSAddrs().join(', ')]
-        ]
-        this.wanIsUp = iface.isUp()
-        this.lan = iface
+        val[0].data = `Wireless (${iface.getDevice().name})`
+        val[1].data = iface.getIPv4Addrs().join(' ')
       })
     },
     getCpuTime () {
@@ -154,7 +106,7 @@ export default {
           total2 += t
         })
 
-        this.cpuPercentage = Math.floor(((total2 - total1 - (idle2 - idle1)) / (total2 - total1)) * 100)
+        this.sysInfo[0].data = Math.floor(((total2 - total1 - (idle2 - idle1)) / (total2 - total1)) * 100) // cpu load
       })
     },
     getSysInfo () {
@@ -162,16 +114,39 @@ export default {
         let localDate = new Date(localtime * 1000)
         localDate = localDate.toLocaleDateString('lt-LT') + ' ' + localDate.toLocaleTimeString('lt-LT')
 
-        this.sysinfo = [
-          ['ROUTER UPTIME', '%t'.format(uptime)],
-          ['LOCAL DEVICE TIME', localDate],
-          ['FIRMWARE VERSION', release.revision]
-        ]
-
-        this.memPercentage = Math.floor(((memory.total - memory.free) / memory.total) * 100)
-        this.flashPercentage = Math.floor((disk.root.used / disk.root.total) * 100)
-      // console.log((disk.root.used / disk.root.total) * 100)
+        // Setting data
+        this.sysInfo[1].data = '%t'.format(uptime) // uptime
+        this.sysInfo[2].data = localDate // local device time
+        this.sysInfo[3].data = Math.floor(((memory.total - memory.free) / memory.total) * 100) // memory usage
+        this.sysInfo[4].data = Math.floor((disk.root.used / disk.root.total) * 100) // flash usage
+        this.sysInfo[5].data = release.revision // firmware
       })
+    },
+    getNetEvents (type, lim) {
+      const arr = []
+      this.$log.get({ table: type, limit: lim }).then((r) => {
+        r.log.forEach((event) => {
+          const obj = { name: this.toDate(event.TIME), data: event.TEXT, progress: false }
+          arr.push(obj)
+        })
+        this.netEvents = arr
+      })
+    },
+    getSysEvents (type, lim) {
+      const arr = []
+      this.$log.get({ table: type, limit: lim }).then((r) => {
+        r.log.forEach((event) => {
+          const obj = { name: this.toDate(event.TIME), data: event.TEXT, progress: false }
+          arr.push(obj)
+        })
+        this.sysEvents = arr
+      })
+    },
+    // Timestamp to date
+    toDate (timestamp) {
+      let localDate = new Date(timestamp * 1000)
+      localDate = localDate.toLocaleDateString('lt-LT') + ' ' + localDate.toLocaleTimeString('lt-LT')
+      return localDate
     }
   }
 }

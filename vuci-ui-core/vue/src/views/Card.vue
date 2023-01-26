@@ -1,27 +1,11 @@
 <template>
-    <a-card :title="this.title" style="width: 300px">
-      <a slot="extra" href="#">more</a>
-
+    <a-card class="card" :title="this.title">
         <div class="row" v-for="(item, key) in data" :key="key">
 
-          <!-- Row without columns -->
-          <div v-if="!getColumns(item)">
             <strong>{{ item.name }}</strong>
             <br>
-            <span>{{ item.data }}</span>
-          </div>
-
-          <!-- Row with columns -->
-          <div v-if="getColumns(item)">
-            <strong>{{ item.name }}</strong>
-            <a-row>
-              <a-col :span="12" v-for="(item, key) in data" :key="key">
-                <strong>{{ item.name }}</strong>
-                <br>
-                <span>{{ item.data }}</span>
-              </a-col>
-            </a-row>
-          </div>
+            <span v-if="!item.progress">{{ item.data }}</span>
+            <a-progress v-if="item.progress" :percent="item.data"/>
 
         </div>
 
@@ -35,20 +19,17 @@ export default {
   props: {
     title: { required: true },
     data: { required: true }
-  },
-  methods: {
-    getColumns (item) {
-      if (item.columns && item.columns > 1) { return item.columns }
-      return false
-    }
-  },
-  created () {
-    console.log(this.getColumns(this.data[0]))
   }
 }
 </script>
 
 <style>
+.card {
+  width: 300px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
 .row:not(:last-child) {
   border-bottom: 1px solid rgb(235 235 235);
   padding-top: 10px;
