@@ -25,6 +25,7 @@ export default {
 
 <style>
 .card {
+  /* height: 480px; */
   width: 300px;
   margin-top: 5px;
   margin-bottom: 15px;
@@ -34,5 +35,10 @@ export default {
   border-bottom: 1px solid rgb(235 235 235);
   padding-top: 10px;
   margin-bottom: 10px
+}
+
+span {
+  color: grey;
+  font-size: 11px;
 }
 </style>
