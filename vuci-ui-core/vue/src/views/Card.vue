@@ -4,7 +4,7 @@
 
             <strong>{{ item.name }}</strong>
             <br>
-            <span v-if="!item.progress">{{ item.data }}</span>
+            <span class="card-span" v-if="!item.progress">{{ item.data }}</span>
             <a-progress v-if="item.progress" :percent="item.data"/>
 
         </div>
@@ -37,7 +37,7 @@ export default {
   margin-bottom: 10px
 }
 
-span {
+.card-span {
   color: grey;
   font-size: 11px;
 }

@@ -4,11 +4,27 @@
             Get system info
         </a-button>
 
+        <a-button type="primary" @click="openDrawer">
+            Drawer
+        </a-button>
+
         <card title="SYSTEM" :data="sysInfo"></card>
         <card title="LAN" :data="lan"></card>
         <card title="WAN" :data="wan"></card>
         <card title="RECENT NETWORK EVENTS" :data="netEvents"></card>
         <card title="RECENT SYSTEM EVENTS" :data="sysEvents"></card>
+
+    <a-drawer
+      title="Basic Drawer"
+      placement="right"
+      :closable="false"
+      :visible="drawer"
+      @close="openDrawer">
+      <p draggable>Some contents1...</p>
+      <p draggable>Some contents2...</p>
+      <p draggable>Some contents3...</p>
+    </a-drawer>
+
     </div>
 </template>
 
@@ -19,6 +35,8 @@ export default {
   components: { Card },
   data () {
     return {
+      drawer: false,
+
       // System data
       sysInfo: [
         { name: 'CPU load', data: 0, progress: true },
@@ -47,33 +65,20 @@ export default {
   },
   methods: {
     test () {
-      /*
-      this.$rpc.call('system', 'syslog', { limit: 10 }).then(({ log }) => {
-        console.log(log)
-      })
-
-      this.$log.get({ table: 'NETWORK', limit: 5 }).then((r) => {
-        console.log(r)
-      })
-
-      this.$log.get({ table: 'SYSTEM', limit: 5 }).then((r) => {
-        console.log(r)
-      })
-
-      this.$network.load().then(() => {
-        const iface = this.$network.getInterfaces()
-        console.log(iface)
-      })
-      */
-      this.getEvents(this.netEvents, 'NETWORK', 5)
-      console.log(this.netEvents)
+      // this.getEvents(this.netEvents, 'NETWORK', 5)
+      // console.log(this.netEvents)
+      // this.getEvents(this.netEvents, 'NETWORK', 5)
+      // console.log(this.netEvents)
+    },
+    openDrawer () {
+      this.drawer = !this.drawer
     },
     update () {
       this.getSysInfo()
       this.getInterface(this.lan, 'lan')
       this.getInterface(this.wan, 'wan')
-      this.getNetEvents('NETWORK', 5)
-      this.getSysEvents('SYSTEM', 5)
+      this.getEvents(this.netEvents, 'NETWORK', 5)
+      this.getEvents(this.sysEvents, 'SYSTEM', 5)
     },
     getInterface (val, inter) {
       this.$network.load().then(() => {
@@ -122,24 +127,14 @@ export default {
         this.sysInfo[5].data = release.revision // firmware
       })
     },
-    getNetEvents (type, lim) {
+    getEvents (ref, type, lim) {
       const arr = []
       this.$log.get({ table: type, limit: lim }).then((r) => {
         r.log.forEach((event) => {
           const obj = { name: this.toDate(event.TIME), data: event.TEXT, progress: false }
           arr.push(obj)
         })
-        this.netEvents = arr
-      })
-    },
-    getSysEvents (type, lim) {
-      const arr = []
-      this.$log.get({ table: type, limit: lim }).then((r) => {
-        r.log.forEach((event) => {
-          const obj = { name: this.toDate(event.TIME), data: event.TEXT, progress: false }
-          arr.push(obj)
-        })
-        this.sysEvents = arr
+        this.copyArray(ref, arr)
       })
     },
     // Timestamp to date
@@ -147,6 +142,14 @@ export default {
       let localDate = new Date(timestamp * 1000)
       localDate = localDate.toLocaleDateString('lt-LT') + ' ' + localDate.toLocaleTimeString('lt-LT')
       return localDate
+    },
+    copyArray (to, from) {
+      // Emptying old data
+      to.splice(0, to.length) // without splice, array isn't server by reference
+
+      from.forEach(item => {
+        to.push(item)
+      })
     }
   }
 }
