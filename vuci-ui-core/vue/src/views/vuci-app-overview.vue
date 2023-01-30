@@ -1,17 +1,20 @@
 <template>
     <div class="example">
         <div class="cards-wrapper">
-          <card
-            v-for="(card, key) in cardsData" :key="key"
-            :title="card.title"
-            :data="card.rows"
-            draggable
-          ></card>
+          <draggable v-model="cardsData">
+            <card
+              v-for="(card, key) in cardsData" :key="key"
+              :title="card.title"
+              :data="card.rows"
+              draggable
+            ></card>
+          </draggable>
         </div>
     </div>
 </template>
 
 <script>
+import draggable from 'vuedraggable'
 import Card from './Card.vue'
 
 const addRowProperties = obj => {
@@ -21,7 +24,7 @@ const addRowProperties = obj => {
 }
 
 export default {
-  components: { Card },
+  components: { Card, draggable },
   data () {
     return {
       cardsData: [

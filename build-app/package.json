@@ -5,7 +5,9 @@
   "scripts": {
     "build": "vue-cli-service build --target lib --dest dist --name app src/app.vue"
   },
-  "dependencies": {},
+  "dependencies": {
+    "vuedraggable": "^2.24.3"
+  },
   "devDependencies": {
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
