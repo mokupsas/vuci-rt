@@ -1,9 +1,9 @@
 <template>
     <a-card class="card" :title="this.title">
         <div class="row" v-for="(item, key) in data" :key="key">
-            <strong>{{ item.title }}</strong>
+            <strong class="card-row-title">{{ item.title }}</strong>
             <br>
-            <component :is="componentByType(item.type)" :percent="item.value" status="normal">{{ item.value }}</component>
+            <component :is="componentByType(item.type)" :percent="item.value" status="normal" size="small" class="card-span">{{ item.value }}</component>
         </div>
 
       <slot></slot>
@@ -28,16 +28,22 @@ export default {
 
 <style>
 .card {
-  /* height: 480px; */
+  height: 400px;
   width: 300px;
   margin-top: 5px;
   margin-bottom: 15px;
+  margin-right: 15px;
+  float: left;
+  overflow: hidden;
 }
 
 .row:not(:last-child) {
+  padding-bottom: 6px;
   border-bottom: 1px solid rgb(235 235 235);
-  padding-top: 10px;
-  margin-bottom: 10px
+}
+
+.card-row-title {
+  font-size: 12px;
 }
 
 .card-span {
