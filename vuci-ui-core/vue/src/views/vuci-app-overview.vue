@@ -1,29 +1,14 @@
 <template>
     <div class="example">
         <a-button type="primary" @click="test">
-            Get system info
+            Update cards
         </a-button>
 
-        <a-button type="primary" @click="openDrawer">
-            Drawer
-        </a-button>
-
-        <card title="SYSTEM" :data="sysInfo"></card>
-        <card title="LAN" :data="lan"></card>
-        <card title="WAN" :data="wan"></card>
-        <card title="RECENT NETWORK EVENTS" :data="netEvents"></card>
-        <card title="RECENT SYSTEM EVENTS" :data="sysEvents"></card>
-
-    <a-drawer
-      title="Basic Drawer"
-      placement="right"
-      :closable="false"
-      :visible="drawer"
-      @close="openDrawer">
-      <p draggable>Some contents1...</p>
-      <p draggable>Some contents2...</p>
-      <p draggable>Some contents3...</p>
-    </a-drawer>
+        <card
+          v-for="(card, key) in cardsData" :key="key"
+          :title="card.title"
+          :data="card.rows"
+        ></card>
 
     </div>
 </template>
@@ -31,16 +16,31 @@
 <script>
 import Card from './Card.vue'
 
+const addRowProperties = obj => {
+  obj.title = obj[0]
+  obj.value = obj[1]
+  obj.type = obj[2]
+}
+
 export default {
   components: { Card },
   data () {
     return {
-      drawer: false,
-
+      cardsData: [
+        /*
+        {
+          title: 'SYSTEM',
+          rows: [
+            ['CPU load', 50],
+            ['CPU load1', 50]
+          ]
+        }
+        */
+      ],
       // System data
       sysInfo: [
-        { name: 'CPU load', data: 0, progress: true },
-        { name: 'Router uptime', data: null, progress: false },
+        { name: 'CPU load', data: 0, type: 'progress-bar' },
+        { name: 'Router uptime', data: null },
         { name: 'Local device time', data: null, progress: false },
         { name: 'Memory usage', data: 0, progress: true },
         { name: 'Flash usage', data: 0, progress: true },
@@ -60,71 +60,163 @@ export default {
     }
   },
   timers: {
-    update: { time: 2000, autostart: true, immediate: true, repeat: true },
-    getCpuTime: { time: 1000, autostart: true, immediate: true, repeat: true }
+    update: { time: 2000, autostart: true, immediate: true, repeat: true }
+    // getCpuTime: { time: 1000, autostart: true, immediate: true, repeat: true }
   },
   methods: {
-    test () {
-      // this.getEvents(this.netEvents, 'NETWORK', 5)
-      // console.log(this.netEvents)
-      // this.getEvents(this.netEvents, 'NETWORK', 5)
-      // console.log(this.netEvents)
-    },
-    openDrawer () {
-      this.drawer = !this.drawer
-    },
-    update () {
-      this.getSysInfo()
-      this.getInterface(this.lan, 'lan')
-      this.getInterface(this.wan, 'wan')
-      this.getEvents(this.netEvents, 'NETWORK', 5)
-      this.getEvents(this.sysEvents, 'SYSTEM', 5)
-    },
-    getInterface (val, inter) {
-      this.$network.load().then(() => {
-        const iface = this.$network.getInterface(inter)
-        if (!iface) return
+    async test () {
+      const sysRows = await this.getSysInfo()
+      const card = this.createCard('SYSTEM', sysRows)
+      const changedCard = this.getCardChanges(this.cardsData, card)
 
-        val[0].data = `Wireless (${iface.getDevice().name})`
-        val[1].data = iface.getIPv4Addrs().join(' ')
+      if (changedCard !== false) {
+        const index = this.cardsData.findIndex(item => item.title === card.title)
+        this.cardsData[index].rows = card.rows
+        console.log('card has changed')
+      } else {
+        console.log('card didnt change')
+      }
+    },
+    /**
+     * Creates card object
+     * @param {string} title card title/heading
+     * @param {array} rows array of rows
+     * @return {object} card object
+     */
+    createCard (title, rows) {
+      return {
+        title: title,
+        rows: rows
+      }
+    },
+    /**
+     * Gets an array of cards with the same title but changed details
+     * @param {array} cardsData array of cards
+     * @param {object} card card object
+     * @returns {array|bool} array of cards that have changed | false on empty array
+     */
+    getCardChanges (cardsData, card) {
+      /*
+      if (cardsData.length === 0) { return true }
+      const val = cardsData.filter((item) => {
+        if (item.title === card.title) {
+          console.log('a')
+          console.log(item.rows)
+          console.log(card.rows)
+          return JSON.stringify(item.rows) !== JSON.stringify(card.rows)
+        }
+        return true
+      })
+      console.log(val)
+      */
+
+      const res = cardsData.filter(({ title, rows }) => title === card.title && JSON.stringify(rows) !== JSON.stringify(card.rows))
+      if (res.length === 0) return false
+      return res
+    },
+    /**
+     *  Inserts card into array and returns it's index
+     * @param {*} cardsData array of cards
+     * @param {*} card card to insert
+     * @return {int} index
+     */
+    insertCard (cardsData, card) {
+      cardsData.push(card)
+      return cardsData.length - 1
+    },
+    /**
+     * Updates existing card with new rows
+     * @param {array} cards array of cards
+     * @param {int} key card index
+     * @param {array} rows array of rows
+     */
+    updateCard (cards, key, rows) {
+      this.addPropsAllRows(rows)
+      cards[key].rows = rows
+    },
+    /**
+     * Add properties to each row in array and returns be reference
+     * @param {array} rows
+     */
+    addPropsAllRows (rows) {
+      // Adding properties to each row
+      rows.forEach(row => {
+        addRowProperties(row)
       })
     },
-    getCpuTime () {
-      this.$rpc.call('system', 'cpu_time').then(times => {
-        if (!this.lastCPUTime) {
-          this.cpuPercentage = 0
-          this.lastCPUTime = times
-          return
-        }
+    /**
+     *Updates every card in cards array. Called by timing
+     */
+    async update () {
+      /*
+      const sysRows = await this.getSysInfo()
+      const card = this.getCardsData('SYSTEM', sysRows)
+      this.insertCard(this.cardsData, card)
+      */
+    },
+    /**
+     * Gets system data and retuns array of rows
+     * @return {array} array of rows
+     */
+    async getSysInfo () {
+      const data = await this.$system.getInfo().then((response) => {
+        return response
+      })
+      if (!data) { return {} }
 
+      const cpuLoad = await this.getCpuLoad()
+      const memUsage = Math.floor(((data.memory.total - data.memory.free) / data.memory.total) * 100)
+      const flashUsage = Math.floor((data.disk.root.used / data.disk.root.total) * 100)
+
+      // Formating rows for card
+      const rows = [
+        ['CPU LOAD', cpuLoad, 'progress-bar'],
+        ['ROUTER UPTIME', '%t'.format(data.uptime)],
+        ['LOCAL DEVICE TIME', this.toDate(data.localtime)],
+        ['MEMORY USAGE', memUsage, 'progress-bar'],
+        ['FLASH USAGE', flashUsage, 'progress-bar'],
+        ['FIRMWARE VERSION', data.release.revision]
+      ]
+
+      this.addPropsAllRows(rows)
+
+      return rows
+    },
+    async getCpuLoad () {
+      const load = await this.$rpc.call('system', 'cpu_time').then(times => {
         // CPU load
-        const idle1 = this.lastCPUTime[3]
-        const idle2 = times[3]
-        let total1 = 0
-        let total2 = 0
-
-        this.lastCPUTime.forEach(t => {
-          total1 += t
-        })
+        const idle = times[3]
+        let total = 0
 
         times.forEach(t => {
-          total2 += t
+          total += t
         })
 
-        this.sysInfo[0].data = Math.floor(((total2 - total1 - (idle2 - idle1)) / (total2 - total1)) * 100) // cpu load
+        return Math.floor(((total - idle) / total) * 100) // cpu load
       })
-    },
-    getSysInfo () {
-      this.$system.getInfo().then(({ disk, release, localtime, uptime, memory }) => {
-        let localDate = new Date(localtime * 1000)
-        localDate = localDate.toLocaleDateString('lt-LT') + ' ' + localDate.toLocaleTimeString('lt-LT')
 
-        // Setting data
-        this.sysInfo[1].data = '%t'.format(uptime) // uptime
-        this.sysInfo[2].data = localDate // local device time
-        this.sysInfo[3].data = Math.floor(((memory.total - memory.free) / memory.total) * 100) // memory usage
-        this.sysInfo[4].data = Math.floor((disk.root.used / disk.root.total) * 100) // flash usage
-        this.sysInfo[5].data = release.revision // firmware
+      return load
+    },
+    async getInterfacesInfo () {
+      return await this.$network.load().then(() => {
+        const ifaces = this.$network.getInterfaces()
+
+        // Formating rows for card
+        const rows = []
+
+        ifaces.forEach(iface => {
+          rows.push([
+            iface.name,
+            iface.getIPv4Addrs().join(' ')
+          ])
+        })
+
+        // Adding properties to each row
+        rows.forEach(row => {
+          addRowProperties(row)
+        })
+
+        return rows
       })
     },
     getEvents (ref, type, lim) {
@@ -151,6 +243,11 @@ export default {
         to.push(item)
       })
     }
+  },
+  async created () {
+    const sysRows = await this.getSysInfo()
+    const card = this.createCard('SYSTEM', sysRows)
+    this.insertCard(this.cardsData, card)
   }
 }
 </script>

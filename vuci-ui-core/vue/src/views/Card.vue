@@ -1,12 +1,9 @@
 <template>
     <a-card class="card" :title="this.title">
         <div class="row" v-for="(item, key) in data" :key="key">
-
-            <strong>{{ item.name }}</strong>
+            <strong>{{ item.title }}</strong>
             <br>
-            <span class="card-span" v-if="!item.progress">{{ item.data }}</span>
-            <a-progress v-if="item.progress" :percent="item.data"/>
-
+            <component :is="componentByType(item.type)" :percent="item.value" status="normal">{{ item.value }}</component>
         </div>
 
       <slot></slot>
@@ -19,6 +16,12 @@ export default {
   props: {
     title: { required: true },
     data: { required: true }
+  },
+  methods: {
+    componentByType (type) {
+      if (type === 'progress-bar') return 'a-progress'
+      return 'span'
+    }
   }
 }
 </script>
