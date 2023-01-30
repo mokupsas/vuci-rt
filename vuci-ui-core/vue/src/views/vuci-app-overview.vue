@@ -1,15 +1,13 @@
 <template>
     <div class="example">
-        <a-button type="primary" @click="test">
-            Update cards
-        </a-button>
-
-        <card
-          v-for="(card, key) in cardsData" :key="key"
-          :title="card.title"
-          :data="card.rows"
-        ></card>
-
+        <div class="cards-wrapper">
+          <card
+            v-for="(card, key) in cardsData" :key="key"
+            :title="card.title"
+            :data="card.rows"
+            draggable
+          ></card>
+        </div>
     </div>
 </template>
 
@@ -36,106 +34,65 @@ export default {
           ]
         }
         */
-      ],
-      // System data
-      sysInfo: [
-        { name: 'CPU load', data: 0, type: 'progress-bar' },
-        { name: 'Router uptime', data: null },
-        { name: 'Local device time', data: null, progress: false },
-        { name: 'Memory usage', data: 0, progress: true },
-        { name: 'Flash usage', data: 0, progress: true },
-        { name: 'Firmware version', data: null, progress: false }
-      ],
-
-      wan: [
-        { name: 'Type', data: null, progress: false },
-        { name: 'IP address', data: null, progress: false }
-      ],
-      lan: [
-        { name: 'Type', data: null, progress: false },
-        { name: 'IP address', data: null, progress: false }
-      ],
-      netEvents: [],
-      sysEvents: []
+      ]
     }
   },
   timers: {
-    update: { time: 2000, autostart: true, immediate: true, repeat: true }
-    // getCpuTime: { time: 1000, autostart: true, immediate: true, repeat: true }
+    update: { time: 1000, autostart: true, immediate: false, repeat: true }
   },
   methods: {
     async test () {
-      const sysRows = await this.getSysInfo()
-      const card = this.createCard('SYSTEM', sysRows)
-      const changedCard = this.getCardChanges(this.cardsData, card)
+      const cards = await this.getCardsData()
+      const changedCards = this.getCardsChanges(cards, this.cardsData)
 
-      if (changedCard !== false) {
-        const index = this.cardsData.findIndex(item => item.title === card.title)
-        this.cardsData[index].rows = card.rows
-        console.log('card has changed')
-      } else {
-        console.log('card didnt change')
+      if (changedCards) {
+        changedCards.forEach(card => {
+          const index = this.cardsData.findIndex(item => item.title === card.title)
+          this.cardsData[index].rows = card.rows
+        })
       }
     },
     /**
-     * Creates card object
-     * @param {string} title card title/heading
-     * @param {array} rows array of rows
-     * @return {object} card object
+     * Gets an array of cards
      */
-    createCard (title, rows) {
-      return {
-        title: title,
-        rows: rows
-      }
+    async getCardsData () {
+      const cards = []
+
+      // System card
+      const sysCard = await this.getSysCard()
+      cards.push(sysCard)
+
+      // Interface cards
+      const intCards = await this.getInterfacesCards()
+      intCards.forEach(card => cards.push(card))
+
+      // Network events card
+      const netEvCard = await this.getEventsCard('NETWORK', 5)
+      cards.push(netEvCard)
+
+      // System events card
+      const sysEvCard = await this.getEventsCard('SYSTEM', 5)
+      cards.push(sysEvCard)
+
+      return cards
     },
     /**
-     * Gets an array of cards with the same title but changed details
-     * @param {array} cardsData array of cards
-     * @param {object} card card object
-     * @returns {array|bool} array of cards that have changed | false on empty array
+     * Gets an array of cards which data has changed
+     * @param {*} card1 array of cards
+     * @param {*} card2 array of cards to compare against
+     * @return {array|bool} array of cards | false if no cards found
      */
-    getCardChanges (cardsData, card) {
-      /*
-      if (cardsData.length === 0) { return true }
-      const val = cardsData.filter((item) => {
-        if (item.title === card.title) {
-          console.log('a')
-          console.log(item.rows)
-          console.log(card.rows)
-          return JSON.stringify(item.rows) !== JSON.stringify(card.rows)
-        }
-        return true
+    getCardsChanges (card1, card2) {
+      const res = card1.filter(object1 => {
+        return card2.some(object2 => {
+          return object1.title === object2.title && JSON.stringify(object1.rows) !== JSON.stringify(object2.rows)
+        })
       })
-      console.log(val)
-      */
-
-      const res = cardsData.filter(({ title, rows }) => title === card.title && JSON.stringify(rows) !== JSON.stringify(card.rows))
       if (res.length === 0) return false
       return res
     },
     /**
-     *  Inserts card into array and returns it's index
-     * @param {*} cardsData array of cards
-     * @param {*} card card to insert
-     * @return {int} index
-     */
-    insertCard (cardsData, card) {
-      cardsData.push(card)
-      return cardsData.length - 1
-    },
-    /**
-     * Updates existing card with new rows
-     * @param {array} cards array of cards
-     * @param {int} key card index
-     * @param {array} rows array of rows
-     */
-    updateCard (cards, key, rows) {
-      this.addPropsAllRows(rows)
-      cards[key].rows = rows
-    },
-    /**
-     * Add properties to each row in array and returns be reference
+     * Adds properties to each row in array and returns be reference
      * @param {array} rows
      */
     addPropsAllRows (rows) {
@@ -148,17 +105,21 @@ export default {
      *Updates every card in cards array. Called by timing
      */
     async update () {
-      /*
-      const sysRows = await this.getSysInfo()
-      const card = this.getCardsData('SYSTEM', sysRows)
-      this.insertCard(this.cardsData, card)
-      */
+      const cards = await this.getCardsData()
+      const changedCards = this.getCardsChanges(cards, this.cardsData)
+
+      if (changedCards) {
+        changedCards.forEach(card => {
+          const index = this.cardsData.findIndex(item => item.title === card.title)
+          this.cardsData[index].rows = card.rows
+        })
+      }
     },
     /**
      * Gets system data and retuns array of rows
      * @return {array} array of rows
      */
-    async getSysInfo () {
+    async getSysCard () {
       const data = await this.$system.getInfo().then((response) => {
         return response
       })
@@ -169,7 +130,7 @@ export default {
       const flashUsage = Math.floor((data.disk.root.used / data.disk.root.total) * 100)
 
       // Formating rows for card
-      const rows = [
+      const propedRows = [
         ['CPU LOAD', cpuLoad, 'progress-bar'],
         ['ROUTER UPTIME', '%t'.format(data.uptime)],
         ['LOCAL DEVICE TIME', this.toDate(data.localtime)],
@@ -178,10 +139,19 @@ export default {
         ['FIRMWARE VERSION', data.release.revision]
       ]
 
-      this.addPropsAllRows(rows)
+      this.addPropsAllRows(propedRows)
 
-      return rows
+      const card = {
+        title: 'SYSTEM',
+        rows: propedRows
+      }
+
+      return card
     },
+    /**
+     * Gets device cpu load
+     * @return {int} cpu load
+     */
     async getCpuLoad () {
       const load = await this.$rpc.call('system', 'cpu_time').then(times => {
         // CPU load
@@ -197,59 +167,76 @@ export default {
 
       return load
     },
-    async getInterfacesInfo () {
+    /**
+     * Gets an array of cards containing each interface data
+     * @return {array} array of cards
+     */
+    async getInterfacesCards () {
       return await this.$network.load().then(() => {
         const ifaces = this.$network.getInterfaces()
 
-        // Formating rows for card
-        const rows = []
+        // Formating cards
+        const cards = []
 
         ifaces.forEach(iface => {
-          rows.push([
-            iface.name,
-            iface.getIPv4Addrs().join(' ')
+          const propedRows = [
+            ['TYPE', 'wired'],
+            ['IP ADDRESS', iface.getIPv4Addrs().join(' ')]
+          ]
+          this.addPropsAllRows(propedRows)
+
+          cards.push({
+            title: iface.name,
+            rows: propedRows
+          })
+        })
+
+        return cards
+      })
+    },
+    /**
+     * Gets an array of cards containing provided event data
+     * @param {*} type event type
+     * @param {*} lim limit event to retrieve
+     * @return {array} array of cards
+     */
+    async getEventsCard (type, lim) {
+      return this.$log.get({ table: type, limit: lim }).then((r) => {
+        // Formatting rows for card
+        const propedRows = []
+        r.log.forEach((event) => {
+          propedRows.push([
+            this.toDate(event.TIME),
+            event.TEXT
           ])
         })
+        this.addPropsAllRows(propedRows)
 
-        // Adding properties to each row
-        rows.forEach(row => {
-          addRowProperties(row)
-        })
-
-        return rows
+        return {
+          title: `${type} EVENTS`,
+          rows: propedRows
+        }
       })
     },
-    getEvents (ref, type, lim) {
-      const arr = []
-      this.$log.get({ table: type, limit: lim }).then((r) => {
-        r.log.forEach((event) => {
-          const obj = { name: this.toDate(event.TIME), data: event.TEXT, progress: false }
-          arr.push(obj)
-        })
-        this.copyArray(ref, arr)
-      })
-    },
-    // Timestamp to date
+    /**
+     * Converts timestamp to datetime
+     * @param {timestamp} timestamp timestamp to convert
+     * @return {datetime}
+     */
     toDate (timestamp) {
       let localDate = new Date(timestamp * 1000)
       localDate = localDate.toLocaleDateString('lt-LT') + ' ' + localDate.toLocaleTimeString('lt-LT')
       return localDate
-    },
-    copyArray (to, from) {
-      // Emptying old data
-      to.splice(0, to.length) // without splice, array isn't server by reference
-
-      from.forEach(item => {
-        to.push(item)
-      })
     }
   },
   async created () {
-    const sysRows = await this.getSysInfo()
-    const card = this.createCard('SYSTEM', sysRows)
-    this.insertCard(this.cardsData, card)
+    this.cardsData = await this.getCardsData()
   }
 }
 </script>
 
-<style></style>
+<style>
+.cards-wrapper {
+  display: inline-block;
+}
+</style>
