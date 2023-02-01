@@ -87,21 +87,37 @@ export default {
     async changeCardPosition (event) {
       const oldIndex = event.oldIndex // moved card old index
       const newIndex = event.newIndex // moved card new index
-
-      // Getting switched cards interfaces
       const ifaces = await this.getCardInterfaces()
-      // Getting card moved by user
-      const findMovedCard = ifaces.find(card => card.title === this.cardsData[oldIndex].title)
-      // Getting another card that switched places
-      const findAnotherCard = ifaces.find(card => card.title === this.cardsData[newIndex].title)
+      let cardsCopy = this.cardsData
 
-      // Save positions to UCI config file
-      if (findMovedCard && findAnotherCard) {
-        this.$uci.set('overview', findMovedCard['.name'], 'position', newIndex)
-        this.$uci.set('overview', findAnotherCard['.name'], 'position', oldIndex)
-        this.$uci.save()
-        this.$uci.apply()
+      // We move a copy of array elements, because cardsData is being updated after this  method
+      cardsCopy = this.moveArrayEl(cardsCopy, oldIndex, newIndex)
+
+      // After moving one card, position migth change for multiple cards.
+      // So we save position of cards, whose position has changes
+      for (let i = 0; i < cardsCopy.length; i++) {
+        const sid = ifaces.find(card => card.title === cardsCopy[i].title)['.name'] // getting current card sid
+        this.$uci.set('overview', sid, 'position', i)
       }
+      await this.$uci.save()
+      await this.$uci.apply()
+    },
+    /**
+     * Move element in array
+     * @param {array} arr array to move elements in
+     * @param {int} index index of element to move
+     * @param {int} moveTo index where to move element
+     */
+    moveArrayEl (arr, index, moveTo) {
+      if (moveTo > index) {
+        arr.splice(moveTo + 1, 0, arr[index]) // move to position
+        arr.splice(index, 1) // remove moved item (prevents duplication)
+      } else {
+        arr.splice(index + 1, 0, arr[moveTo]) // move to position
+        arr.splice(moveTo, 1) // remove moved item (prevents duplication)
+      }
+      arr.join()
+      return arr
     },
     /**
      * Changes card uci config visibility. Called on checkbox click
@@ -115,8 +131,8 @@ export default {
         const visible = parseInt(findCard.visible)
 
         this.$uci.set('overview', findCard['.name'], 'visible', visible ? 0 : 1)
-        this.$uci.save()
-        this.$uci.apply()
+        await this.$uci.save()
+        await this.$uci.apply()
       }
     },
     /**
@@ -179,7 +195,7 @@ export default {
     async createInterfacesFromArray (cards) {
       let wasCreated = false // Checks if atleast one interfaces has been created
       const config = await this.getCardInterfaces()
-      let pos = 0 // count card position
+      let pos = config.length // count card position (starting from number of config entries)
 
       // Checks if card has config interface
       cards.forEach(card => {
@@ -189,8 +205,8 @@ export default {
         if (!iface) {
           this.createCardInterface(card.title, pos, true)
           wasCreated = true
+          pos++ // increasing pos after adding config interface
         }
-        pos++
       })
       // Save uci changes
       await this.$uci.save()
@@ -239,8 +255,8 @@ export default {
         pos++
       })
       // Save uci changes
-      this.$uci.save()
-      this.$uci.apply()
+      await this.$uci.save()
+      await this.$uci.apply()
     },
     /**
      * Adds position and visibility properties to cards array from uci config interface
