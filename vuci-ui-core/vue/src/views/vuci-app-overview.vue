@@ -67,7 +67,7 @@ export default {
     }
   },
   timers: {
-    fetchAndUpdateCardChange: { time: 1000, autostart: true, immediate: false, repeat: true }
+    fetchAndUpdateCardChanges: { time: 1000, autostart: true, immediate: false, repeat: true }
   },
   methods: {
     /**
@@ -217,7 +217,7 @@ export default {
     /**
      * Fetches and updates each card data. Called by timing
      */
-    async fetchAndUpdateCardChange () {
+    async fetchAndUpdateCardChanges () {
       const cards = await this.getCardsData()
       const changedCards = this.getChangesBetweenCards(cards, this.cardsData)
 
@@ -443,6 +443,18 @@ export default {
      */
     openDrawer () {
       this.showDrawer = !this.showDrawer
+    },
+    async removeNonExistingConf () {
+      const config = await this.getCardInterfaces()
+
+      config.forEach(iface => {
+        const findCard = this.cardsData.find(card => card.title === iface.title)
+        if (!findCard) {
+          this.$uci.del('overview', iface['.name'])
+        }
+      })
+      await this.$uci.save()
+      await this.$uci.apply()
     }
   },
   async created () {
@@ -453,6 +465,8 @@ export default {
     if (await this.createInterfacesFromArray(this.cardsData)) {
       this.cardsData = await this.getCardsData()
     }
+
+    this.removeNonExistingConf()
   }
 }
 </script>
