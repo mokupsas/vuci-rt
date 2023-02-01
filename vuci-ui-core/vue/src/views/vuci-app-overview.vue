@@ -1,11 +1,11 @@
 <template>
     <div class="example">
 
-        <a-button v-if="cardsData.length !== 0" class="visibility-toggle-btn" type="primary" @click="openDrawer">
+        <a-button v-if="!alert" class="visibility-toggle-btn" type="primary" @click="openDrawer">
           Change visibility
         </a-button>
 
-        <a-alert v-if="cardsData.length === 0" message="No cards were found" type="warning" show-icon />
+        <a-alert v-show="alert" message="No cards were found" type="warning" show-icon />
 
         <a-drawer
           title="Card visibility"
@@ -52,6 +52,7 @@ export default {
   components: { Card, draggable },
   data () {
     return {
+      alert: false,
       showDrawer: false,
       cardsData: [
         /*
@@ -160,7 +161,6 @@ export default {
       cards.push(sysEvCard)
 
       cards = await this.addCardProperties(cards) // gets position and visibility props
-      if (!cards) return [] // if couldn't load properties from uci
 
       cards = this.sortCardsByPos(cards) // sorts cards by their position
 
@@ -269,7 +269,6 @@ export default {
      */
     async addCardProperties (cards) {
       const config = await this.getCardInterfaces()
-      if (config.length === 0) return false
 
       cards.forEach((card) => {
         // If config interface doesn't exist, create one
@@ -460,6 +459,12 @@ export default {
       })
       await this.$uci.save()
       await this.$uci.apply()
+    },
+    isCardsDataPrepared () {
+      if (this.cardsData[0] && Object.hasOwn(this.cardsData[0], 'visible')) {
+        return true
+      }
+      return false
     }
   },
   async created () {
@@ -471,8 +476,11 @@ export default {
       this.cardsData = await this.getCardsData()
     }
 
+    // Removes interfaces from uci config, if card doesn't exist anymore
     this.removeNonExistingConf()
-    console.log(this.cardsData.length)
+
+    // Shows notification if no cards to show
+    this.alert = !this.isCardsDataPrepared()
   }
 }
 </script>
