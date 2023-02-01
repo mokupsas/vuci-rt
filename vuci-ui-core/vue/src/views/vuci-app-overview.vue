@@ -157,7 +157,9 @@ export default {
       const sysEvCard = await this.getEventsCard('SYSTEM', 5)
       cards.push(sysEvCard)
 
-      cards = await this.addCardPropertoes(cards) // gets position and visibility props
+      cards = await this.addCardProperties(cards) // gets position and visibility props
+      if (!cards) return [] // if couldn't load properties from uci
+
       cards = this.sortCardsByPos(cards) // sorts cards by their position
 
       return cards
@@ -263,8 +265,9 @@ export default {
      * @param {array} cards array of cards
      * @return {array} array with new properties
      */
-    async addCardPropertoes (cards) {
+    async addCardProperties (cards) {
       const config = await this.getCardInterfaces()
+      if (config.length === 0) return false
 
       cards.forEach((card) => {
         // If config interface doesn't exist, create one
@@ -467,6 +470,7 @@ export default {
     }
 
     this.removeNonExistingConf()
+    console.log(this.cardsData.length)
   }
 }
 </script>
