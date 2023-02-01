@@ -1,9 +1,11 @@
 <template>
     <div class="example">
 
-        <a-button class="visibility-toggle-btn" type="primary" @click="openDrawer">
+        <a-button v-if="cardsData.length !== 0" class="visibility-toggle-btn" type="primary" @click="openDrawer">
           Change visibility
         </a-button>
+
+        <a-alert v-if="cardsData.length === 0" message="No cards were found" type="warning" show-icon />
 
         <a-drawer
           title="Card visibility"
