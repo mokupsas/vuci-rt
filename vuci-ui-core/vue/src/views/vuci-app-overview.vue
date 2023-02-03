@@ -27,6 +27,7 @@
               :title="card.title"
               :data="card.rows"
               v-show="card.visible"
+              :cpuLoad="getCardCpuLoad(card)"
             ></card>
           </draggable>
         </div>
@@ -195,10 +196,10 @@ export default {
     /**
      * Creates uci config for each card that doesn't exist in array
      * @param {array} cards array of cards
-     * @return {bool} was atleast one interface created
+     * @return {bool} was atleast one config created
      */
     async createConfigFromArray () {
-      let wasCreated = false // Checks if atleast one interfaces has been created
+      let wasCreated = false // Checks if atleast one config has been created
       const configs = await this.getAllConfigs()
       let pos = configs.length // count card position (starting from number of config entries)
 
@@ -210,7 +211,7 @@ export default {
         // If uci config for specific card doesn't exist, create one
         this.createCardConfig(card.title, pos, true)
         wasCreated = true
-        pos++ // increasing pos after adding config interface
+        pos++ // increasing pos after adding uci config
       })
       // Save uci changes
       await this.$uci.save()
@@ -273,7 +274,6 @@ export default {
 
       // Formating rows for card
       const propedRows = [
-        ['CPU LOAD', cpuLoad, 'progress-bar'],
         ['ROUTER UPTIME', '%t'.format(data.uptime)],
         ['LOCAL DEVICE TIME', this.toDate(data.localtime)],
         ['MEMORY USAGE', memUsage, 'progress-bar'],
@@ -285,7 +285,8 @@ export default {
 
       const card = {
         title: 'SYSTEM',
-        rows: propedRows
+        rows: propedRows,
+        cpuLoad: cpuLoad
       }
 
       return card
@@ -442,6 +443,17 @@ export default {
     doesCardsExist () {
       if (this.cardsData[0] && Object.hasOwn(this.cardsData[0], 'visible')) {
         return true
+      }
+      return false
+    },
+    /**
+     * Checks if card has cpuLoad property, if so returns its value
+     * @param {object} card card object
+     * @return {int|bool} cpu load | false on no property
+     */
+    getCardCpuLoad (card) {
+      if (Object.hasOwn(card, 'cpuLoad')) {
+        return card.cpuLoad
       }
       return false
     }
