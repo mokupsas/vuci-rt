@@ -15,7 +15,7 @@
           @close="openDrawer"
         >
           <div v-for="(card, key) in cardsData" :key="key">
-            <input type="checkbox" :name="card.title" v-on:change="changeCardVisibility(key)" v-model="card.visible"/>
+            <input type="checkbox" :name="card.title" v-on:change="changeConfigVisibility(key)" v-model="card.visible"/>
             <label :for="card.title"> {{ card.title }}</label>
           </div>
         </a-drawer>
@@ -38,8 +38,8 @@
 import draggable from 'vuedraggable'
 import Card from './Card.vue'
 
-// Adds properties to row array values
-const addRowProperties = obj => {
+// Adds properties to card row array values
+const addCardRowProperties = obj => {
   obj.title = obj[0]
   obj.value = obj[1]
   obj.type = obj[2]
@@ -52,7 +52,7 @@ export default {
   components: { Card, draggable },
   data () {
     return {
-      alert: false,
+      alert: false, // alert message, that no cards exist
       showDrawer: false,
       cardsData: [
         /*
@@ -84,56 +84,62 @@ export default {
       }
     },
     /**
+     * Search card object by title in given array
+     * @param {array} array array to search in
+     * @param {string} searchTitle card title to search for
+     */
+    findCardByTitle (array, searchTitle) {
+      const findCard = array.find(card => card.title === searchTitle)
+      if (findCard) { return findCard }
+      return false
+    },
+    /**
      * Called when draggable object has been moved to new position
      * @param {object} event moved object event data
      */
     async changeCardPosition (event) {
-      const oldIndex = event.oldIndex // moved card old index
-      const newIndex = event.newIndex // moved card new index
-      const ifaces = await this.getCardInterfaces()
-      let cardsCopy = this.cardsData
+      const configs = await this.getAllConfigs()
 
-      // We move a copy of array elements, because cardsData is being updated after this  method
-      cardsCopy = this.moveArrayEl(cardsCopy, oldIndex, newIndex)
+      // Swaping cards
+      this.cardsData = this.moveArrayEl(this.cardsData, event.oldIndex, event.newIndex)
 
       // After moving one card, position migth change for multiple cards.
-      // So we save position of cards, whose position has changes
-      for (let i = 0; i < cardsCopy.length; i++) {
-        const sid = ifaces.find(card => card.title === cardsCopy[i].title)['.name'] // getting current card sid
+      // So we save position of all cards
+      for (let i = 0; i < this.cardsData.length; i++) {
+        const sid = this.findCardByTitle(configs, this.cardsData[i].title)['.name']
         this.$uci.set('overview', sid, 'position', i)
       }
       await this.$uci.save()
       await this.$uci.apply()
     },
     /**
-     * Move element in array
+     * Change element place in array. Swaps every other element in between changed positions
      * @param {array} arr array to move elements in
      * @param {int} index index of element to move
      * @param {int} moveTo index where to move element
      */
     moveArrayEl (arr, index, moveTo) {
-      if (moveTo > index) {
-        arr.splice(moveTo + 1, 0, arr[index]) // move to position
-        arr.splice(index, 1) // remove moved item (prevents duplication)
-      } else {
-        arr.splice(index + 1, 0, arr[moveTo]) // move to position
-        arr.splice(moveTo, 1) // remove moved item (prevents duplication)
-      }
-      arr.join()
+      // In case we swap element backwards, we make index to have the smallest value
+      const swapArr = [index, moveTo].sort((x, y) => x - y) // array of index and moveTo ascending
+      index = swapArr[0]
+      moveTo = swapArr[1]
+
+      arr.splice(moveTo + 1, 0, arr[index]) // move to position
+      arr.splice(index, 1).join() // remove moved item (prevents duplication)
       return arr
     },
     /**
      * Changes card uci config visibility. Called on checkbox click
      * @param {int} index card index in cardsData array
      */
-    async changeCardVisibility (index) {
-      const ifaces = await this.getCardInterfaces()
-      const findCard = ifaces.find(card => card.position === index.toString())
+    async changeConfigVisibility (index) {
+      const configs = await this.getAllConfigs()
+      const findConfig = configs.find(card => card.position === index.toString())
 
-      if (findCard) {
-        const visible = parseInt(findCard.visible)
+      if (findConfig) {
+        const visible = parseInt(findConfig.visible)
 
-        this.$uci.set('overview', findCard['.name'], 'visible', visible ? 0 : 1)
+        this.$uci.set('overview', findConfig['.name'], 'visible', visible ? 0 : 1)
         await this.$uci.save()
         await this.$uci.apply()
       }
@@ -145,29 +151,24 @@ export default {
       let cards = []
 
       // System card
-      const sysCard = await this.getSysCard()
-      cards.push(sysCard)
+      cards.push(await this.getSysCard())
 
       // Interface cards
       const intCards = await this.getInterfaceCards()
       intCards.forEach(card => cards.push(card))
 
       // Network events card
-      const netEvCard = await this.getEventsCard('NETWORK', 5)
-      cards.push(netEvCard)
+      cards.push(await this.getEventsCard('NETWORK', 5))
 
       // System events card
-      const sysEvCard = await this.getEventsCard('SYSTEM', 5)
-      cards.push(sysEvCard)
+      cards.push(await this.getEventsCard('SYSTEM', 5))
 
       cards = await this.addCardProperties(cards) // gets position and visibility props
-
       cards = this.sortCardsByPos(cards) // sorts cards by their position
-
       return cards
     },
     /**
-     * Gets an array of objects, that have changed between two arrays
+     * Gets an array of card objects, which have changed
      * @param {array} card1 array of cards
      * @param {array} card2 array of cards to compare against
      * @return {array|bool} array of cards | false if no cards found
@@ -182,35 +183,34 @@ export default {
       return res
     },
     /**
-     * Adds properties to each row in array and returns be reference
+     * Adds properties to each card row in array and returns be reference
      * @param {array} rows
      */
-    addPropsAllRows (rows) {
+    addCardRowsProps (rows) {
       // Adding properties to each row
       rows.forEach(row => {
-        addRowProperties(row)
+        addCardRowProperties(row)
       })
     },
     /**
-     * Creates interfaces for each card that doesn't exist in array
+     * Creates uci config for each card that doesn't exist in array
      * @param {array} cards array of cards
      * @return {bool} was atleast one interface created
      */
-    async createInterfacesFromArray (cards) {
+    async createConfigFromArray () {
       let wasCreated = false // Checks if atleast one interfaces has been created
-      const config = await this.getCardInterfaces()
-      let pos = config.length // count card position (starting from number of config entries)
+      const configs = await this.getAllConfigs()
+      let pos = configs.length // count card position (starting from number of config entries)
 
-      // Checks if card has config interface
-      cards.forEach(card => {
-        const iface = config.find(conf => conf.title === card.title)
+      this.cardsData.forEach(card => {
+        const config = this.findCardByTitle(configs, card.title)
 
-        // If config interface doesn't exist, create one
-        if (!iface) {
-          this.createCardInterface(card.title, pos, true)
-          wasCreated = true
-          pos++ // increasing pos after adding config interface
-        }
+        if (config) { return } // if config found, skip iteration
+
+        // If uci config for specific card doesn't exist, create one
+        this.createCardConfig(card.title, pos, true)
+        wasCreated = true
+        pos++ // increasing pos after adding config interface
       })
       // Save uci changes
       await this.$uci.save()
@@ -235,53 +235,24 @@ export default {
       }
     },
     /**
-     * Update uci config with cards data (position, visibility)
-     */
-    async configSaveCardChanges () {
-      const config = await this.getCardInterfaces()
-
-      let pos = 0 // count card position
-      this.cardsData.forEach(async (card) => {
-        const iface = config.find(conf => conf.title === card.title)
-
-        // If config interface doesn't exist, create one
-        if (!iface) {
-          this.createCardInterface(card.title, pos, card.visible)
-        } else {
-          if (pos !== iface.position) {
-            this.$uci.set('overview', iface['.name'], 'position', pos)
-          }
-          if (card.visible !== iface.visible) {
-            this.$uci.set('overview', iface['.name'], 'visible', card.visible ? 1 : 0)
-          }
-        }
-
-        pos++
-      })
-      // Save uci changes
-      await this.$uci.save()
-      await this.$uci.apply()
-    },
-    /**
-     * Adds position and visibility properties to cards array from uci config interface
+     * Adds position and visibility properties and value to each cards from uci config
      * @param {array} cards array of cards
      * @return {array} array with new properties
      */
     async addCardProperties (cards) {
-      const config = await this.getCardInterfaces()
+      const configs = await this.getAllConfigs()
 
       cards.forEach((card) => {
-        // If config interface doesn't exist, create one
-        const iface = config.find(conf => conf.title === card.title)
+        const findConfig = this.findCardByTitle(configs, card.title)
 
-        // Update cardsData with config data
-        if (iface) {
-          card.position = parseInt(iface.position)
-          if (iface.visible === '1') {
-            card.visible = true
-          } else {
-            card.visible = false
-          }
+        if (!findConfig) { return } // if no data found skip iteration
+
+        // Update cardsData with properties and config data
+        card.position = parseInt(findConfig.position)
+        if (findConfig.visible === '1') {
+          card.visible = true
+        } else {
+          card.visible = false
         }
       })
       return cards
@@ -310,7 +281,7 @@ export default {
         ['FIRMWARE VERSION', data.release.revision]
       ]
 
-      this.addPropsAllRows(propedRows)
+      this.addCardRowsProps(propedRows)
 
       const card = {
         title: 'SYSTEM',
@@ -339,7 +310,7 @@ export default {
       return load
     },
     /**
-     * Gets an array of cards containing each interface data
+     * Gets an array of cards, each containing interface data
      * @return {array} array of cards
      */
     async getInterfaceCards () {
@@ -354,7 +325,7 @@ export default {
             ['TYPE', 'wired'],
             ['IP ADDRESS', iface.getIPv4Addrs().join(' ')]
           ]
-          this.addPropsAllRows(propedRows)
+          this.addCardRowsProps(propedRows)
 
           cards.push({
             title: iface.name,
@@ -381,7 +352,7 @@ export default {
             event.TEXT
           ])
         })
-        this.addPropsAllRows(propedRows)
+        this.addCardRowsProps(propedRows)
 
         return {
           title: `${type} EVENTS`,
@@ -415,12 +386,12 @@ export default {
       })
     },
     /**
-     * Creates config interface for card
+     * Creates uci config entry for card
      * @param {string} title card title
      * @param {int} pos card position
      * @param {bool} visib card visible
      */
-    createCardInterface (title, pos, visib) {
+    createCardConfig (title, pos, visib) {
       pos = pos || 0
       visib = visib ? 1 : 0
 
@@ -434,10 +405,10 @@ export default {
       return true
     },
     /**
-     * Gets cards uci config interfaces
-     * @return {array} array of interfaces
+     * Gets config of all cards
+     * @return {array} array of configs
      */
-    async getCardInterfaces () {
+    async getAllConfigs () {
       return await this.$uci.load('overview').then(async () => {
         return await this.$uci.sections('overview', 'interface')
       })
@@ -448,19 +419,27 @@ export default {
     openDrawer () {
       this.showDrawer = !this.showDrawer
     },
+    /**
+     * Removes non existing cards data from uci config
+     */
     async removeNonExistingConf () {
-      const config = await this.getCardInterfaces()
+      const configs = await this.getAllConfigs()
 
-      config.forEach(iface => {
-        const findCard = this.cardsData.find(card => card.title === iface.title)
-        if (!findCard) {
-          this.$uci.del('overview', iface['.name'])
-        }
+      configs.forEach(config => {
+        const findCard = this.findCardByTitle(this.cardsData, config.title)
+
+        if (findCard) { return } // if card found, skip iteration
+
+        this.$uci.del('overview', config['.name'])
       })
       await this.$uci.save()
       await this.$uci.apply()
     },
-    isCardsDataPrepared () {
+    /**
+     * Checks if cards exist
+     * @return {bool} if atleast one card exist, returns true
+     */
+    doesCardsExist () {
       if (this.cardsData[0] && Object.hasOwn(this.cardsData[0], 'visible')) {
         return true
       }
@@ -471,16 +450,17 @@ export default {
     // Fetch each card data
     this.cardsData = await this.getCardsData()
 
-    // If atleast one interface has been created, we reload cardsData
-    if (await this.createInterfacesFromArray(this.cardsData)) {
+    // If atleast one uci config has been created, we reload cardsData
+    // to see changes instantly
+    if (await this.createConfigFromArray()) {
       this.cardsData = await this.getCardsData()
     }
 
-    // Removes interfaces from uci config, if card doesn't exist anymore
+    // Removes uci configs, for cards which doesn't exist
     this.removeNonExistingConf()
 
     // Shows notification if no cards to show
-    this.alert = !this.isCardsDataPrepared()
+    this.alert = !this.doesCardsExist()
   }
 }
 </script>
