@@ -2,11 +2,7 @@
     <a-card class="card" :title="title">
       <template slot="extra">
         <div class="extra-wrapper">
-          <div v-if="header.type !== 'progress-bar'">
-            <strong class="card-row-title">{{ header.title }}</strong><br/>
-            <span class="card-span">{{ header.value }}</span>
-          </div>
-          <a-progress v-else class="extra-progress" style="width: 100px" :percent="2" size="small" :format="percent => `CPU LOAD ${percent}%`"></a-progress>
+          <a-progress v-if="cpuLoad" class="extra-progress" style="width: 100px" :percent="2" size="small" :format="percent => `CPU LOAD ${percent}%`"></a-progress>
         </div>
       </template>
       <div class="row" v-for="(item, key) in data" :key="key">
@@ -24,41 +20,14 @@ export default {
   name: 'Card',
   props: {
     title: { required: true },
-    data: { required: true }
-  },
-  data () {
-    return {
-      header: {
-        title: null,
-        value: null
-      }
-    }
-  },
-  watch: {
-    data: function (val) {
-      // When data changes, update header with new data
-      if (val) {
-        this.fetchHeader(val)
-      }
-    }
+    data: { required: true },
+    cpuLoad: { default: null }
   },
   methods: {
     componentByType (type) {
       if (type === 'progress-bar') return 'a-progress'
       return 'span'
-    },
-    fetchHeader (rows) {
-      rows.forEach(row => {
-        if (row.header === true) {
-          this.header.title = row.title
-          this.header.value = row.value
-          this.header.type = row.type
-        }
-      })
     }
-  },
-  created () {
-    this.fetchHeader(this.data)
   }
 }
 </script>

@@ -27,7 +27,6 @@
               :title="card.title"
               :data="card.rows"
               v-show="card.visible"
-              :cpuLoad="getCardCpuLoad(card)"
             ></card>
           </draggable>
         </div>
@@ -44,6 +43,7 @@ const addCardRowProperties = obj => {
   obj.title = obj[0]
   obj.value = obj[1]
   obj.type = obj[2]
+  obj.header = obj[3]
 }
 
 // Adds positioning and visibility properties to card object
@@ -268,7 +268,6 @@ export default {
       })
       if (!data) { return {} }
 
-      const cpuLoad = await this.getCpuLoad()
       const memUsage = Math.floor(((data.memory.total - data.memory.free) / data.memory.total) * 100)
       const flashUsage = Math.floor((data.disk.root.used / data.disk.root.total) * 100)
 
@@ -278,15 +277,15 @@ export default {
         ['LOCAL DEVICE TIME', this.toDate(data.localtime)],
         ['MEMORY USAGE', memUsage, 'progress-bar'],
         ['FLASH USAGE', flashUsage, 'progress-bar'],
-        ['FIRMWARE VERSION', data.release.revision]
+        ['FIRMWARE VERSION', data.release.revision],
+        ['CPU LOAD', await this.getCpuLoad(), 'progress-bar', true]
       ]
 
       this.addCardRowsProps(propedRows)
 
       const card = {
         title: 'SYSTEM',
-        rows: propedRows,
-        cpuLoad: cpuLoad
+        rows: propedRows
       }
 
       return card
@@ -443,17 +442,6 @@ export default {
     doesCardsExist () {
       if (this.cardsData[0] && Object.hasOwn(this.cardsData[0], 'visible')) {
         return true
-      }
-      return false
-    },
-    /**
-     * Checks if card has cpuLoad property, if so returns its value
-     * @param {object} card card object
-     * @return {int|bool} cpu load | false on no property
-     */
-    getCardCpuLoad (card) {
-      if (Object.hasOwn(card, 'cpuLoad')) {
-        return card.cpuLoad
       }
       return false
     }
